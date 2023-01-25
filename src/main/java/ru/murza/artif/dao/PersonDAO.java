@@ -1,40 +1,44 @@
 package ru.murza.artif.dao;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.BeanPropertyRowMapper;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import ru.murza.artif.models.Person;
 
+import java.sql.*;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 @Component
 public class PersonDAO {
-    private static int COUNTER;
-    private ArrayList<Person> people;
-
-    {
-        people = new ArrayList<>();
-
-        people.add(new Person(++COUNTER, "Tom"));
-        people.add(new Person(++COUNTER, "Bob"));
-        people.add(new Person(++COUNTER, "Mike"));
+    private final JdbcTemplate jdbcTemplate;
+    @Autowired
+    public PersonDAO(JdbcTemplate jdbcTemplate){
+        this.jdbcTemplate = jdbcTemplate;
     }
 
-    public ArrayList<Person> index(){
-        return people;
+    public List<Person> index(){
+        return jdbcTemplate.query("SELECT * FROM Person", new BeanPropertyRowMapper<>(Person.class));
     }
+
     public Person show (int id){
-        return people.stream().filter(person -> person.getId() == id).findAny().orElse(null);
+        return jdbcTemplate.query("SELECT * FROM Person WHERE ID=?", new Object[]{id}, new BeanPropertyRowMapper<>(Person.class))
+                .stream().findAny().orElse(null);
     }
+    public Optional<Person> show (String name){
+        return jdbcTemplate.query("SELECT * FROM Person WHERE name=?", new Object[]{name}, new BeanPropertyRowMapper<>(Person.class))
+                .stream().findAny();
+    }
+
     public void save(Person person){
-        person.setId(++COUNTER);
-        people.add(person);
+        jdbcTemplate.update("INSERT INTO Person (name, age) VALUES (?,?)", person.getName(), person.getAge());
     }
     public void update(int id, Person updatedPerson){
-        Person personToBeUpdated = show(id);
-
-        personToBeUpdated.setName(updatedPerson.getName());
-
+        jdbcTemplate.update("UPDATE Person SET name=?, age=? WHERE ID=?", updatedPerson.getName(), updatedPerson.getAge(), id);
     }
     public void delete(int id){
-        people.removeIf(person -> person.getId() == id);
+        jdbcTemplate.update("DELETE FROM Person WHERE ID=?", id);
     }
 }

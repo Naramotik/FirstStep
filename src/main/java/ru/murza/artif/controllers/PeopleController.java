@@ -3,16 +3,24 @@ package ru.murza.artif.controllers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import ru.murza.artif.dao.PersonDAO;
 import ru.murza.artif.models.Person;
+import ru.murza.artif.util.PersonValidator;
+
+import javax.validation.Valid;
 
 @Controller
 @RequestMapping("/people")
+@EnableWebMvc
 public class PeopleController {
 
     @Autowired
     private PersonDAO personDAO;
+    @Autowired
+    private PersonValidator personValidator;
 
 
     @GetMapping()
@@ -33,7 +41,12 @@ public class PeopleController {
         return "people/new";
     }
     @PostMapping()
-    public String create(@ModelAttribute("person") Person person){
+    public String create(@ModelAttribute("person") @Valid Person person, BindingResult bindingResult){
+        personValidator.validate(person, bindingResult);
+
+        if (bindingResult.hasErrors())
+            return "people/new";
+
         personDAO.save(person);
         return "redirect:/people";
     }
@@ -45,7 +58,11 @@ public class PeopleController {
     }
 
     @PatchMapping("/{id}")
-    public String update(@ModelAttribute("person") Person person, @PathVariable("id") int id){
+    public String update(@ModelAttribute("person") @Valid Person person, BindingResult bindingResult,
+                         @PathVariable("id") int id){
+        if (bindingResult.hasErrors())
+            return "people/edit";
+
         personDAO.update(id, person);
         return "redirect:/people";
     }
